@@ -8,12 +8,13 @@ const fs = require('node:fs/promises');
 
 
     let i = 0;
+    const numberOfWrites = 500000000;
     const writeMany = () => {
-        while(i < 1000000){
+        while(i <= numberOfWrites){
             const buff = Buffer.from(`${i} `, "utf-8");
 
             // last write
-            if (i == 999999) {
+            if (i == numberOfWrites) {
                 return stream.end(buff);
             }
 
