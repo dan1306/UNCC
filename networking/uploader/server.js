@@ -7,27 +7,45 @@ const server = net.createServer(()=>{});
 
 server.on("connection", async(socket) => {
     console.log("New connection.");
-    let fileHandle = await fs.open("storage/text.txt", "w");
-    let fileStream = fileHandle.createWriteStream();
+    let fileHandle;
+    let fileStream;
+    // let firstChunk = true;
     socket.on("data", async (data)=>{
         
         // writing to destination
-        
-        let result = fileStream.write(data);
+        if(!fileHandle){
+            socket.pause();
 
-        if(!result) socket.pause();
+            const indexOfDivider = data.indexOf("-------")
+            const fileName = data.subarray(10, indexOfDivider).toString("utf-8");
 
+            fileHandle = await fs.open(`storage/${fileName}`, 'w');
+            fileStream = fileHandle.createWriteStream();    
+
+            socket.resume();
+            fileStream.on("drain", () => {
+                socket.resume()
+            });
+        }else{
+            console.log(data.toString('utf-8')); 
+            let result = fileStream.write(data);
+
+            if(!result) socket.pause();
+        }
+       
     });
     
+    
     socket.on("end", async()=>{
-        fileStream.end();            // 1. Tell the stream no more data is coming
-        await finished(fileStream);  // 2. Wait for the stream to write everything to disk
-        await fileHandle.close();    // 3. Now it is 100% safe to close the system file handle
+        if (fileHandle){
+            fileStream.end();            // 1. Tell the stream no more data is coming
+            await finished(fileStream);  // 2. Wait for the stream to write everything to disk
+            await fileHandle.close();    // 3. Now it is 100% safe to close the system file handle
+
+        }
     });
 
-    fileStream.on("drain", () => {
-            socket.resume()
-    });
+
 
 });
 
