@@ -41,7 +41,7 @@ server.on("connection", async(socket) => {
             fileStream.end();            // 1. Tell the stream no more data is coming
             await finished(fileStream);  // 2. Wait for the stream to write everything to disk
             await fileHandle.close();    // 3. Now it is 100% safe to close the system file handle
-
+            console.log("Connection ended!")
         }
     });
 
