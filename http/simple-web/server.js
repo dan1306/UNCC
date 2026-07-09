@@ -1,0 +1,22 @@
+const http = require("node:http");
+const fs = require("node:fs/promises");
+const server = http.createServer();
+
+server.on("request", async(req, res) => {
+    console.log(req.url);
+    console.log(req.method);
+
+    if(req.url === "/" && req.method === "GET"){
+        res.setHeader("Content-type", "text/html");
+        
+        const fileHandle = await fs.open("./public/index.html", "r");
+        const fileStream = fileHandle.createReadStream();
+        
+        fileStream.pipe(res);
+    }
+})
+
+
+server.listen(9000, () =>{
+    console.log("Web server is live at http://localhost:9000")
+})
