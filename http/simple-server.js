@@ -30,7 +30,7 @@ server.on("request", (req, res) => {
         
         console.log(data);
         console.log(name);
-        // res.setHeader("Content-Type", "applivation/json")
+        // res.setHeader("Content-Type", "application/json")
         res.writeHead(200, {
             "Content-Type": "application/json"
         });
