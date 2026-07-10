@@ -32,6 +32,28 @@ server.on("request", async(req, res) => {
         
         fileStream.pipe(res);
     }
+
+    if(req.url === "/login" && req.method === "POST"){
+        res.setHeader("Content-Type", "application/json");
+        res.statusCode = 200;
+
+        const body = {
+            message: "Logging you in...",
+        }
+
+        res.end(JSON.stringify(body));
+    }
+
+    if(req.url === "/user" && req.method === "PUT"){
+        res.setHeader("Content-Type", "application/json");
+        res.statusCode = 401;
+
+        const body = {
+            message: "You first have to be logged in...",
+        }
+
+        res.end(JSON.stringify(body));
+    }
 })
 
 
