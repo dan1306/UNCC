@@ -36,8 +36,30 @@ const PORT = 8000;
 
 const server = new Butter();
 
+server.beforeEach((req, res, nxt)=> {
+    // setTimeout(() => {
+        console.log("first middleware function");
+        nxt();
+    // }, 2000);\
+})
+
+server.beforeEach((req, res, nxt)=> {
+    setTimeout(() => {
+        console.log("second middleware function");
+        nxt();
+    }, 2000);
+})
+
+server.beforeEach((req, res, nxt)=> {
+    // setTimeout(() => {
+        console.log("third middleware function");
+        nxt();
+    // }, 2000);
+})
+
 // ------ FILES ROUTES ------ //
 server.route("get", "/", (req, res) => {
+    console.log("this is the '/' route")
     res.sendFile("./public/index.html", "text/html");
 });
 
@@ -102,12 +124,29 @@ server.route("post", "/api/login", (req, res) => {
     
 })
 
+// log user out
+server.route("delete", "/api/logout", (req, res) => {
+
+})
+
+// update user info
+server.route("put", "/api/user", (req, res) => {
+
+})
+
+// create a post
+server.route("post", "/api/posts", (req, res) => {
+
+})
+
+// send user info
 server.route("get", "/api/user", (req, res) => {
     const token = req.headers.cookie.split("=")[1];
     const sessions = SESSIONS.find((session)=> session.token === token);
     if(sessions){
         // Send users profile info
-        console.log(`Sending user profile info...`)
+        const user = USERS.find((user) => user.id === sessions.userId);
+        res.json({username: user.username, name: user.name});
     }else{
         res.status(401).json({error: "Unauthorized"})
     }

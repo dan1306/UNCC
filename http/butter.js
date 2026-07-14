@@ -14,9 +14,10 @@ class Butter {
         // }
 
         this.routes = {};
+        this.middleware = [];
 
         this.server.on("request", (req, res) => {
-            console.log("Request came in.");
+            // console.log("Request came in.");
 
             // Send a file back to the client
             res.sendFile = async (path, mime_type) => {
@@ -40,18 +41,40 @@ class Butter {
                 res.end(JSON.stringify(data));
             };
 
-
-            // If the routes object does not have a key of req.method + req.url, return 484
-            if(!this.routes[req.method.toLocaleLowerCase() + req.url]){
-                return res.status(404).json({error: `Cannot ${req.method} ${req.url}`}) 
+            const runMiddleWear = (req, res, middleware, index) => {
+                // exit point
+                if(index == middleware.length){
+                    // If the routes object does not have a key of req.method + req.url, return 484
+                    if(!this.routes[req.method.toLocaleLowerCase() + req.url]){
+                        return res.status(404).json({error: `Cannot ${req.method} ${req.url}`}) 
+                    }
+                    this.routes[req.method.toLowerCase() + req.url](req, res);
+                } else {
+                    middleware[index](req, res, ()=>{
+                        runMiddleWear(req, res, middleware, index + 1);
+                    })
+                }
             }
 
-            this.routes[req.method.toLowerCase() + req.url](req, res);
-        })
+            runMiddleWear(req, res, this.middleware, 0);
+            // run all middleware function, before running corresponding routes
+            // this.middleware[0](req, res, ()=>{
+            //     this.middleware[1](req, res, () => {
+            //         this.middleware[2](req, res, () => {
+            //             this.routes[req.method.toLowerCase() + req.url](req, res);
+            //         });
+            //     });
+            // });
+
+        });
     }
 
     route (method, path, cb) {
         this.routes[method + path] = cb;
+    }
+
+    beforeEach (cb){
+        this.middleware.push(cb);
     }
 
     listen(port, cb) {
