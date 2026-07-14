@@ -37,6 +37,7 @@ class Butter {
 
             // sends JSON data back to the client (for small json data less than the highWaterMark)
             res.json = (data) => {
+                // This is only good for bodies with a size less than the highwatermark value
                 res.setHeader("Content-Type", "application/json");
                 res.end(JSON.stringify(data));
             };

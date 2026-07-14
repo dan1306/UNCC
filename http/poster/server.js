@@ -36,91 +36,104 @@ const PORT = 8000;
 
 const server = new Butter();
 
+// for authentication
 server.beforeEach((req, res, nxt)=> {
-    // setTimeout(() => {
-        console.log("first middleware function");
+    
+    const routesToAuthenticate = ["GET /api/user", "PUT /api/user", "POST /api/post", "DELETE /api/logout"];
+    
+    if(routesToAuthenticate.indexOf(req.method + " "+ req.url) !== -1){
+        // if we have token cookie, then save the userId to the res object
+        if (req.headers.cookie){ 
+            const token = req.headers.cookie.split("=")[1];
+            const sessions = SESSIONS.find((session)=> session.token === token);
+            if(sessions){
+                req.userId = sessions.userId;
+                return nxt();
+            }
+        }
+        return res.status(401).json({error: "unauthorized"})
+    } else {
         nxt();
-    // }, 2000);\
+    }
+
+    
+})
+
+// parsing JSON Body
+server.beforeEach((req, res, nxt)=> {
+    // This is only good for bodies with a size less than the highwatermark value
+    if(req.headers["content-type"] === "application/json"){
+        let body = "";
+        req.on("data", (chunk) => {
+            body = chunk.toString("utf-8");
+        })
+
+        req.on("end", () => {
+            body = JSON.parse(body);
+            req.body = body;
+            return nxt();
+        })
+    } else {
+        nxt();
+    }
 })
 
 server.beforeEach((req, res, nxt)=> {
-    setTimeout(() => {
-        console.log("second middleware function");
+    const routes = ["/", "/login", "/profile", "/new-post"];
+    if(routes.indexOf(req.url) !== -1 && req.method === "GET") {
+        return res.status(200).sendFile("./public/index.html", "text/html");
+    }else{
         nxt();
-    }, 2000);
+    } 
 })
 
 server.beforeEach((req, res, nxt)=> {
-    // setTimeout(() => {
-        console.log("third middleware function");
+    const routes = ["/styles.css", "/scripts.js"];
+    if(routes.indexOf(req.url) !== -1 && req.method === "GET") {
+        if(req.url == "/styles.css") return res.status(200).sendFile("./public/styles.css", "text/css");
+        else return res.status(200).sendFile("./public/scripts.js", "text/javascript"); 
+    }else{
         nxt();
-    // }, 2000);
+    } 
 })
 
 // ------ FILES ROUTES ------ //
-server.route("get", "/", (req, res) => {
-    console.log("this is the '/' route")
-    res.sendFile("./public/index.html", "text/html");
-});
 
-server.route("get", "/login", (req, res) => {
-    res.sendFile("./public/index.html", "text/html");
-});
+// server.route("get", "/styles.css", (req, res) => {
+//     res.sendFile("./public/styles.css", "text/css");
+// });
 
-server.route("get", "/profile", (req, res) => {
-
-    res.sendFile("./public/index.html", "text/html");
-});
-
-server.route("get", "/styles.css", (req, res) => {
-    res.sendFile("./public/styles.css", "text/css");
-});
-
-server.route("get",  "/scripts.js", (req, res) => {
-    res.sendFile("./public/scripts.js", "text/javascript");
-});
+// server.route("get",  "/scripts.js", (req, res) => {
+//     res.sendFile("./public/scripts.js", "text/javascript");
+// });
 
 // ------ JSON ROUTES ------ //
 
 // log a user in and give them a token
 server.route("post", "/api/login", (req, res) => {
-    
-    let body = "";
-    req.on("data", (chunk) => {
-        body = chunk.toString("utf-8");
-    })
-
-    req.on("end", () => {
-        body = JSON.parse(body);
-        console.log(body);
         
-        const userName = body.username;
-        const password = body.password;
+    const userName = req.body.username;
+    const password = req.body.password;
     
-
-        // check if the user exist
-        const user = USERS.find((user) => user.username === userName);
+    // check if the user exist
+    const user = USERS.find((user) => user.username === userName);
         
-        // if user exist then check password
-        if(user && user.password === password) {
-            // at this point we have validated the user info
+    // if user exist then check password
+    if(user && user.password === password) {
+        // at this point we have validated the user info
 
 
 
-            const token = Math.floor(Math.random() * 10000000000000).toString();
+        const token = Math.floor(Math.random() * 10000000000000).toString();
 
-            // save generated token
-            SESSIONS.push({userId: user.id, token: token});
+        // save generated token
+        SESSIONS.push({userId: user.id, token: token});
 
-            res.setHeader("Set-Cookie", `token=${token}; Path/;`);
-            res.status(200).json({message:"Logged in successfully."})
-        } else {
-            res.status(401).json({error: "Invalid username or password."});
-        }
-    
-    })
-
-
+        res.setHeader("Set-Cookie", `token=${token}; Path/;`);
+        res.status(200).json({message:"Logged in successfully."})
+    } else {
+        res.status(401).json({error: "Invalid username or password."});
+    }
     
 })
 
@@ -129,10 +142,10 @@ server.route("delete", "/api/logout", (req, res) => {
 
 })
 
-// update user info
-server.route("put", "/api/user", (req, res) => {
+// // update user info
+// server.route("put", "/api/user", (req, res) => {
 
-})
+// })
 
 // create a post
 server.route("post", "/api/posts", (req, res) => {
@@ -141,16 +154,9 @@ server.route("post", "/api/posts", (req, res) => {
 
 // send user info
 server.route("get", "/api/user", (req, res) => {
-    const token = req.headers.cookie.split("=")[1];
-    const sessions = SESSIONS.find((session)=> session.token === token);
-    if(sessions){
-        // Send users profile info
-        const user = USERS.find((user) => user.id === sessions.userId);
-        res.json({username: user.username, name: user.name});
-    }else{
-        res.status(401).json({error: "Unauthorized"})
-    }
-    // res.status(200).json({message: "o"})
+    // Send users profile info
+    const user = USERS.find((user) => user.id === req.userId);
+    res.json({username: user.username, name: user.name});
 })
 
 
