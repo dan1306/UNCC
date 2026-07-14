@@ -139,17 +139,61 @@ server.route("post", "/api/login", (req, res) => {
 
 // log user out
 server.route("delete", "/api/logout", (req, res) => {
+    // remove sessions object from session array
+    const sessionIndex = SESSIONS.findIndex((session) => session.userId === req.userId);
+    if(sessionIndex > -1) {
+        SESSIONS.splice(sessionIndex, 1);
+    }
 
+    res.setHeader("Set-Cookie", "token=deleted; path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+    res.status(200).json({message: "logged out."});
 })
 
 // // update user info
-// server.route("put", "/api/user", (req, res) => {
+server.route("put", "/api/user", (req, res) => {
+    const username = req.body.username;
+    const name = req.body.name;
+    const password = req.body.password;
+    // grab the user obj currently logged in
+    const user = USERS.find((user) => user.id === req.userId);
+    user.username = username;
+    user.name = name;
 
-// })
+    // only update password if provided
+    if(password) {
+        user.password = password;
+    }
+
+    res.status(200).json({username: user.username, name: user.name, password_updated: password ? true : false });
+
+})
 
 // create a post
 server.route("post", "/api/posts", (req, res) => {
+    const title = req.body.title;
+    const body = req.body.body;
+    
+    const token = req.headers.cookie.split("=")[1];
+    console.log(token);
+    // return;
+    if(token){
+        const user = SESSIONS.find((s) => s.token == token)
+        // console.log(user);
+        // return
+        if(user){
+            const post = {
+                id: POSTS.length + 1,
+                title: title,
+                body: body,
+                userId: user.userId
+                // author: req.name
+        };
 
+        POSTS.push(post);
+        res.status(201).json(post);
+        }
+    }
+   
 })
 
 // send user info
