@@ -1,11 +1,14 @@
 const Butter = require("../butter");
 
+// A sample object in this array would look like:
+// {userId: 1, token: 234234234}
+const SESSIONS = [];
+
 const USERS = [
     {id: 1, name: "Tom Brown", username : "tb242", password: "1"},
     {id: 2, name: "Haley Brown", username : "hb242", password: "2"},
     {id: 3, name: "Diddy Brown", username : "db242", password: "3"},
 ];
-
 
 const POSTS = [
     {
@@ -38,6 +41,15 @@ server.route("get", "/", (req, res) => {
     res.sendFile("./public/index.html", "text/html");
 });
 
+server.route("get", "/login", (req, res) => {
+    res.sendFile("./public/index.html", "text/html");
+});
+
+server.route("get", "/profile", (req, res) => {
+
+    res.sendFile("./public/index.html", "text/html");
+});
+
 server.route("get", "/styles.css", (req, res) => {
     res.sendFile("./public/styles.css", "text/css");
 });
@@ -47,6 +59,63 @@ server.route("get",  "/scripts.js", (req, res) => {
 });
 
 // ------ JSON ROUTES ------ //
+
+// log a user in and give them a token
+server.route("post", "/api/login", (req, res) => {
+    
+    let body = "";
+    req.on("data", (chunk) => {
+        body = chunk.toString("utf-8");
+    })
+
+    req.on("end", () => {
+        body = JSON.parse(body);
+        console.log(body);
+        
+        const userName = body.username;
+        const password = body.password;
+    
+
+        // check if the user exist
+        const user = USERS.find((user) => user.username === userName);
+        
+        // if user exist then check password
+        if(user && user.password === password) {
+            // at this point we have validated the user info
+
+
+
+            const token = Math.floor(Math.random() * 10000000000000).toString();
+
+            // save generated token
+            SESSIONS.push({userId: user.id, token: token});
+
+            res.setHeader("Set-Cookie", `token=${token}; Path/;`);
+            res.status(200).json({message:"Logged in successfully."})
+        } else {
+            res.status(401).json({error: "Invalid username or password."});
+        }
+    
+    })
+
+
+    
+})
+
+server.route("get", "/api/user", (req, res) => {
+    const token = req.headers.cookie.split("=")[1];
+    const sessions = SESSIONS.find((session)=> session.token === token);
+    if(sessions){
+        // Send users profile info
+        console.log(`Sending user profile info...`)
+    }else{
+        res.status(401).json({error: "Unauthorized"})
+    }
+    // res.status(200).json({message: "o"})
+})
+
+
+// Send list of all posts that we have
 server.route("get", "/api/posts", (re1, res) => {
 
     const posts = POSTS.map((post) => {
@@ -58,7 +127,6 @@ server.route("get", "/api/posts", (re1, res) => {
 
     res.status(200).json(posts);
 })
-
 
 server.listen(PORT, () => {
     console.log("Server has started on port " + PORT);
